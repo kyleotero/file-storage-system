@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/rs/cors"
 )
 
 func main() {
@@ -25,10 +26,13 @@ func main() {
 		return
 	}
 
-	handleRequests()
-
 	fmt.Println("Listening on http://localhost:8080")
-	http.ListenAndServe(":8080", nil)
+	c := cors.New(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:3000"},
+		AllowCredentials: true,
+	})
+	handleRequests()
+	http.ListenAndServe(":8080", c.Handler(http.DefaultServeMux))
 }
 
 func handleRequests() {
@@ -50,6 +54,7 @@ func upload(w http.ResponseWriter, r *http.Request) {
 	}
 
 	file, fileHeader, err := r.FormFile("file")
+	fmt.Println(r.FormValue("file"))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -108,6 +113,7 @@ func download(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/plain")
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", name))
+
 	_, err = w.Write([]byte(data))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
